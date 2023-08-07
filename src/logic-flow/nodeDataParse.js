@@ -116,30 +116,22 @@ function parseNodesTree(node, isCreate, expression) {
 
     if (isLogicNode) {
         console.log(`%c${nodeValue}  ${nodeType}`, 'color:red')
+        if (children.length == 0) {
+            throw new Error(`[${node.type} node] ${node.id} must has child node, please check.`)
+        }
+
+        // traverse get child sub expression
+        const arrChildEl = getMultSubExpressionList(children)
+        if (!isCreate) {
+            expression += `, `
+        }
+
         // IFEL
-        if (nodeType == IFEL) {
-            if (!isCreate) {
-                expression += `, `
-            }
+        if (nodeType == IFEL || nodeType == SWITCH) {
             if (isCreate && interSectionNode) {
-                // create new el and has interSectionNode
                 expression += `THEN(`
             }
             expression += `IF(${nodeValue}, `
-            
-            let arrChildEl = []
-            for (let i = 0; i < children.length; i++) {
-                const child = children[i];
-
-                if (child.children.length > 0) {
-                    // create new el
-                    let subExpression = parseNodesTree(child, true, '')
-                    arrChildEl.push(subExpression)
-                } else {
-                    arrChildEl.push(child.text.value)
-                }
-            }
-
             if (arrChildEl.length > 1) {
                 expression += `${arrChildEl[0]}).ELSE(${arrChildEl[1]})`
             } else {
@@ -147,7 +139,7 @@ function parseNodesTree(node, isCreate, expression) {
             }
 
             if (interSectionNode) {
-                expression += `, ${interSectionNode.text.value}`
+                expression += parseNodesTree(interSectionNode, false, '')
                 if (isCreate) {
                     expression += ')'
                 }
@@ -156,31 +148,14 @@ function parseNodesTree(node, isCreate, expression) {
 
         // SWITCH
         if (nodeType == SWITCH) {
-            if (!isCreate) {
-                expression += `, `
-            }
             if (isCreate && interSectionNode) {
                 expression += `THEN(`
             }
             expression += `SWITCH(${nodeValue}).TO(`
-
-            let arrChildEl = []
-            for (let i = 0; i < children.length; i++) {
-                const child = children[i];
-
-                if (child.children.length > 0) {
-                    // create new el
-                    let subExpression = parseNodesTree(child, true, '')
-                    arrChildEl.push(subExpression)
-                } else {
-                    arrChildEl.push(child.text.value)
-                }
-            }
-
             expression += arrChildEl.join(',') + ')'
 
             if (interSectionNode) {
-                expression += `, ${interSectionNode.text.value}`
+                expression += parseNodesTree(interSectionNode, false, '')
                 if (isCreate) {
                     expression += ')'
                 }
@@ -192,10 +167,6 @@ function parseNodesTree(node, isCreate, expression) {
             const outNode = findLoopOutNode(node)
             console.log(outNode)
 
-            if (!isCreate) {
-                expression += ', '
-            }
-
             if (isCreate && outNode) {
                 expression += 'THEN('
             }
@@ -204,19 +175,6 @@ function parseNodesTree(node, isCreate, expression) {
                 expression += `FOR(${nodeValue}).DO(`
             } else {
                 expression += `WHILE(${nodeValue}).DO(`
-            }
-
-            let arrChildEl = []
-            for (let i = 0; i < children.length; i++) {
-                const child = children[i];
-
-                if (child.children.length > 0) {
-                    // create new el
-                    let subExpression = parseNodesTree(child, true, '')
-                    arrChildEl.push(subExpression)
-                } else {
-                    arrChildEl.push(child.text.value)
-                }
             }
 
             console.log('FOR & WHILE:', arrChildEl)
@@ -234,80 +192,55 @@ function parseNodesTree(node, isCreate, expression) {
             }
         }
     } else {
-        console.log(`%c${nodeValue}  ${nodeType}`, 'color:red', nodeNumType)
+        console.log(`%c${nodeValue}  ${nodeType}`, 'color:red')
        
-        if (nodeNumType == SINGLE) {
-            if (!isCreate) {
-                expression += `, ${nodeValue}`
-            } else {
-                expression += `THEN(${nodeValue}`
-            }
-
-            expression += parseNodesTree(children[0], false, '')
-
-            if (isCreate) {
-                expression += ')'
-            }
+        if (isCreate) {
+            expression += `THEN(${nodeValue}`
         } else {
-            if (!isCreate) {
-                expression += `, ${nodeValue}, WHEN(`
-            } else {
-                expression += `THEN(${nodeValue}, WHEN(`
-            }
+            expression += `, ${nodeValue}`
+        }
 
-            let arrChildEl = []
-            for (let i = 0; i < children.length; i++) {
-                const child = children[i]
-                if (child.children.length > 0) {
-                    // create new el
-                    let subExpression = parseNodesTree(child, true, '')
-                    arrChildEl.push(subExpression)
-                } else {
-                    arrChildEl.push(child.text.value)
-                }
-            }
-            //child path el
+        if (nodeNumType == SINGLE) {
+            expression += parseNodesTree(children[0], false, '')
+        } else {
+            expression += `WHEN(`
+            const arrChildEl = getMultSubExpressionList(children)
             expression += arrChildEl.join(',') + ')'
             console.log(arrChildEl)
 
             if (interSectionNode) {
                 expression += parseNodesTree(interSectionNode, false, '')
             }
-            // close el
-            if (isCreate) {
-                expression += ')'
-            }
+        }
+
+        // close current expression
+        if (isCreate) {
+            expression += ')'
         }
     }
     return expression
 }
 
 /**
- * Get node expression list of mult node.
+ * Create every child's expression.
  * 
  * @param {array} children 
- * @param {string} currentType 
- * @param {node} interSectionNode 
- * @param {string} trueId 
  * @returns 
  */
-function getMultSubExpressionList(children, currentType, interSectionNode, loopOutNode, trueId) {
-    let childValues = []
+function getMultSubExpressionList(children) {
+    let arrChildEl = []
     for (let i = 0; i < children.length; i++) {
-        const child = children[i]
-
-        if (child.id == trueId && currentType == IFEL) {
-            childValues.unshift(child.text.value) //默认顺序执行，除非设置了true
-        }
+        const child = children[i];
 
         if (child.children.length > 0) {
-            let subExpression = parseNodesTree(child, currentType, "", interSectionNode, loopOutNode)
-            childValues.push(subExpression)
+            // create new sub el
+            let subExpression = parseNodesTree(child, true, '')
+            arrChildEl.push(subExpression)
         } else {
-            childValues.push(child.text.value)
+            arrChildEl.push(child.text.value)
         }
     }
-    return childValues
+    return arrChildEl   
 }
 
 
@@ -405,7 +338,11 @@ function findLoopOutNode(node) {
     return outNode
 }
 
-
+/**
+ * validate loop node.
+ * 
+ * @param {object} node 
+ */
 function validateLoopSubNode(node) {
     const children = node.children
     if (children.length == 0) {
@@ -479,27 +416,6 @@ function getNodeNumType(node) {
         return MULT
     } else {
         return SINGLE
-    }
-}
-
-// 循环体内包含多重循环，最多只能有一个出口函数，视为外层循环体的唯一出口, 返回唯一的out node
-function validityLoopOutNode(node, type) {
-    if ((type == FOR || type == WHILE)) {
-        const stepSet = new Set()
-        getLoopOutNodeSet(node, stepSet)
-        const stepArray = Array.from(stepSet)
-        return stepArray.length > 1 ? false : stepArray[0]
-    }
-    return false
-}
-
-function getLoopOutNodeSet(node, set) {
-    if (node.type == STEP) set.add(node)
-    if (node.children.length > 0) {
-        for (let i = 0; i < node.children.length; i++) {
-            const child = node.children[i];
-            getLoopOutNodeSet(child, set)
-        }
     }
 }
 
