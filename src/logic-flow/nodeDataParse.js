@@ -27,6 +27,7 @@ export default function(data) {
 
     // get total tree by nodes and edges
     const treeHeadNode = parseNodesChildren(nodes[0], nodes, edges)
+    console.log(treeHeadNode)
 
     // parse tree to expression
     return parseNodesTree(treeHeadNode, true, '') || ''
@@ -131,7 +132,7 @@ function parseNodesTree(node, isCreate, expression) {
         }
 
         // IFEL
-        if (nodeType == IFEL || nodeType == SWITCH) {
+        if (nodeType == IFEL) {
             if (isCreate && interSectionNode) {
                 expression += `THEN(`
             }
