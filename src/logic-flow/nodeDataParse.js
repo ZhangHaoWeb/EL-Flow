@@ -1,3 +1,7 @@
+/**
+ * parse node data to expression.
+ * tree & graph DFS traverse.
+ */
 const SINGLE = "SINGLE"
 const MULT = "MULT"
 const IFEL = "IFEL"
