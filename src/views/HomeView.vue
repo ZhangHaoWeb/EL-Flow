@@ -34,14 +34,8 @@ onMounted(() => {
 
 const getAllData = () => {
   let data = obj.lf.getGraphData()
-
-  try {
-    const el = nodeDataParse(data)
-    console.log(`%c[result]: ${el}`, 'color: orange')
-
-  } catch (e) {
-    console.error(`${e.name}: ${e.message}`);
-  }
+  const {expression, message} = nodeDataParse(data)
+  console.log(expression)
 }
 
 

@@ -2,6 +2,7 @@
  * Logic flow node datas parse to Lite flow El expression.
  * tree & graph DFS traverse.
  */
+
 const SINGLE = "SINGLE"
 const MULT = "MULT"
 const IFEL = "IFEL"
@@ -11,6 +12,12 @@ const WHILE = "WHILE"
 const STEP = "STEP"
 const SUB = "SUB"
 
+const ERROR_MAP = {
+   NODE_EMPTY_VALUE: "节点缺少值",
+   NODE_EMPTY_CHILDREN: "至少含有一个子节点",
+   NODE_CHILD_MUST_SUB: "其子节点必须是SUB类型",
+   NODE_INTERSECTION: "其相交节点不能是SUB节点"
+}
 
 /**
  * Default export function, create expression by logic flow data.
@@ -24,13 +31,22 @@ export default function(data) {
 
     // validate node value.
     validateNodes(nodes)
-
-    // get total tree by nodes and edges
+    // create total tree by nodes and edges
     const treeHeadNode = parseNodesChildren(nodes[0], nodes, edges)
-    console.log(treeHeadNode)
-
-    // parse tree to expression
-    return parseNodesTree(treeHeadNode, true, '') || ''
+    // parse total tree to EL expression
+    try {
+        const expression = parseNodesTree(treeHeadNode, true, '') || ''
+        return {
+            expression,
+            message: 'success'
+        }
+    } catch (e) {
+        console.error(`${e.name}: ${e.message}`);
+        return {
+            expression: false,
+            message: e.message
+        }
+    }
 }
 
 
@@ -42,7 +58,7 @@ function validateNodes(nodes) {
     for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
         if (!node.text || !node.text.value) {
-            throw new Error(`[${node.type} node] ${node.id} does not have value, please check.`)
+            throwErrorHandler(node, ERROR_MAP.NODE_EMPTY_VALUE)
         }
     }
 }
@@ -122,7 +138,7 @@ function parseNodesTree(node, isCreate, expression) {
     if (isLogicNode) {
         console.log(`%c${nodeValue}  ${nodeType}`, 'color:red')
         if (children.length == 0) {
-            throw new Error(`[${node.type} node] ${node.id} must has child node, please check.`)
+            throwErrorHandler(node, ERROR_MAP.NODE_EMPTY_CHILDREN)
         }
 
         if (!isCreate) {
@@ -256,9 +272,14 @@ function findInterSectionNode(node) {
     const nodeMap = new Map()
 
     for (let i = 0; i < children.length; i++) {
-        const node = children[i];
+        const child = children[i];
+
+        if (child.type == STEP && node.type != STEP && node.type != SUB) {
+            throwErrorHandler(node, ERROR_MAP.NODE_CHILD_MUST_SUB)
+        }
+        
         const set = new Set()
-        const treeSet =  traverseTree(node, set, nodeMap)
+        const treeSet =  traverseTree(child, set, nodeMap)
         paths.push(treeSet)
     }
 
@@ -272,6 +293,11 @@ function findInterSectionNode(node) {
 
         // spilt tree
         splitTreeTraverse(node, intersectionNode)
+    }
+
+    // IFEL & SIWTCH node intersection node can not be SUB type.
+    if ((node.type == IFEL || node.type == SWITCH) && intersectionNode && intersectionNode.type == SUB) {
+        throwErrorHandler(node, ERROR_MAP.NODE_INTERSECTION)
     }
 
     return intersectionNode
@@ -345,14 +371,11 @@ function findLoopOutNode(node) {
  */
 function validateLoopSubNode(node) {
     const children = node.children
-    if (children.length == 0) {
-        throw new Error(`[${node.type} node]: ${node.id} must has sub node.`)
-    }
-
+ 
     for (let i = 0; i < children.length; i++) {
         const child = children[i];
         if (child.type == STEP) {
-            throw new Error(`[${node.type} node]: ${node.id} sub node's type can not be STEP.`)
+            throwErrorHandler(node, ERROR_MAP.NODE_CHILD_MUST_SUB)
         }
     }
 }
@@ -419,3 +442,12 @@ function getNodeNumType(node) {
     }
 }
 
+/**
+ * trow error handler.
+ * 
+ * @param {object} node 
+ * @param {string} message 
+ */
+function throwErrorHandler(node, message) {
+    throw new Error(`[NODE:${node.text.value}] ${node.type} ${message}`)
+}
