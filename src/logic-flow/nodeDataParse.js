@@ -1,5 +1,5 @@
 /**
- * parse node data to expression.
+ * Logic flow node datas parse to Lite flow El expression.
  * tree & graph DFS traverse.
  */
 const SINGLE = "SINGLE"
@@ -13,7 +13,7 @@ const SUB = "SUB"
 
 
 /**
- * Default function, create expression by view data.
+ * Default export function, create expression by logic flow data.
  * 
  * @param {object} data 
  */
@@ -168,8 +168,6 @@ function parseNodesTree(node, isCreate, expression) {
         // FOR & WHILE
         if (nodeType == FOR || (nodeType == WHILE)) {
             const outNode = findLoopOutNode(node)
-            console.log(outNode, 1111)
-
             if (isCreate && outNode) {
                 expression += 'THEN('
             }
@@ -196,10 +194,6 @@ function parseNodesTree(node, isCreate, expression) {
         }
     } else {
         console.log(`%c${nodeValue}  ${nodeType}`, 'color:red')
-        if (nodeType == SUB) {
-            console.log(node, 222, children[0])
-        }
-
         if (isCreate) {
             expression += `THEN(${nodeValue}`
         } else {
