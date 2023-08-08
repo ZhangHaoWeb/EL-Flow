@@ -125,8 +125,6 @@ function parseNodesTree(node, isCreate, expression) {
             throw new Error(`[${node.type} node] ${node.id} must has child node, please check.`)
         }
 
-        // traverse get child sub expression
-        const arrChildEl = getMultSubExpressionList(children)
         if (!isCreate) {
             expression += `, `
         }
@@ -137,12 +135,12 @@ function parseNodesTree(node, isCreate, expression) {
                 expression += `THEN(`
             }
             expression += `IF(${nodeValue}, `
+            const arrChildEl = getMultSubExpressionList(children)
             if (arrChildEl.length > 1) {
                 expression += `${arrChildEl[0]}).ELSE(${arrChildEl[1]})`
             } else {
                 expression += `${arrChildEl[0]})`
             }
-
             if (interSectionNode) {
                 expression += parseNodesTree(interSectionNode, false, '')
                 if (isCreate) {
@@ -157,8 +155,8 @@ function parseNodesTree(node, isCreate, expression) {
                 expression += `THEN(`
             }
             expression += `SWITCH(${nodeValue}).TO(`
+            const arrChildEl = getMultSubExpressionList(children)
             expression += arrChildEl.join(',') + ')'
-
             if (interSectionNode) {
                 expression += parseNodesTree(interSectionNode, false, '')
                 if (isCreate) {
@@ -170,7 +168,7 @@ function parseNodesTree(node, isCreate, expression) {
         // FOR & WHILE
         if (nodeType == FOR || (nodeType == WHILE)) {
             const outNode = findLoopOutNode(node)
-            console.log(outNode)
+            console.log(outNode, 1111)
 
             if (isCreate && outNode) {
                 expression += 'THEN('
@@ -181,7 +179,7 @@ function parseNodesTree(node, isCreate, expression) {
             } else {
                 expression += `WHILE(${nodeValue}).DO(`
             }
-
+            const arrChildEl = getMultSubExpressionList(children)
             console.log('FOR & WHILE:', arrChildEl)
             if (arrChildEl.length > 1) {
                 expression += `WHEN(${arrChildEl.join(',')}))`
@@ -198,7 +196,10 @@ function parseNodesTree(node, isCreate, expression) {
         }
     } else {
         console.log(`%c${nodeValue}  ${nodeType}`, 'color:red')
-       
+        if (nodeType == SUB) {
+            console.log(node, 222, children[0])
+        }
+
         if (isCreate) {
             expression += `THEN(${nodeValue}`
         } else {
@@ -208,7 +209,7 @@ function parseNodesTree(node, isCreate, expression) {
         if (nodeNumType == SINGLE) {
             expression += parseNodesTree(children[0], false, '')
         } else {
-            expression += `WHEN(`
+            expression += `, WHEN(`
             const arrChildEl = getMultSubExpressionList(children)
             expression += arrChildEl.join(',') + ')'
             console.log(arrChildEl)
