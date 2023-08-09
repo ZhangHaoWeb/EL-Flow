@@ -13,6 +13,9 @@
   - [逻辑结构体 SUB NODE(重要)](#逻辑结构体-sub-node重要)
 
 # El-Flow Design
+图形化流程，更灵活的控制业务逻辑，即流程图 --> 表达式 --> 业务逻辑
+[LiteFlow](https://liteflow.yomahub.com/)
+[LogicFlow](https://site.logic-flow.cn/docs/#/)
 
 ## 基础节点 NODE TYPE
 ### 执行节点
