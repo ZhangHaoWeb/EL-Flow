@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import IconCircle from './icon/Circle.vue'
 import IconWhile from './icon/While.vue'
 import IconDiamond from './icon/Diamond.vue'
@@ -11,10 +12,26 @@ const props = defineProps({
     test: Number
 })
 
-const dragInNode = (type) => { 
+const getRandomColor = () => {
+    const r = Math.floor(Math.random() * 256)
+    const g = Math.floor(Math.random() * 256)
+    const b = Math.floor(Math.random() * 256)
+    return `rgb(${r}, ${g}, ${b}, 0.2)`
+}
+
+const subNodeColor = ref(getRandomColor())
+
+const dragInNode = (type) => {
+    if (type == 'STEP') {
+        subNodeColor.value = getRandomColor()
+    }
+
     props.obj.lf.dnd.startDrag({
-        type
-    })
+        type,
+        properties: {
+            bg: subNodeColor.value
+        }
+    });
 }
 
 </script>
@@ -26,13 +43,6 @@ const dragInNode = (type) => {
                 <icon-rect-radius class="svg-node"/>
             </div>
             <div className="node-label">STEP</div>
-        </div>
-
-        <div class="approve-node node-apply">
-            <div class="node-shap" @mousedown="dragInNode('SUB')">
-                <icon-react-radius-sub class="svg-node"/>
-            </div>
-            <div className="node-label">SUB</div>
         </div>
 
         <div class="approve-node node-apply">
@@ -61,6 +71,13 @@ const dragInNode = (type) => {
                 <icon-while class="svg-node" />
             </div>
             <div className="node-label">WHILE</div>
+        </div>
+
+        <div class="approve-node node-apply">
+            <div class="node-shap" @mousedown="dragInNode('SUB')">
+                <icon-react-radius-sub class="svg-node"/>
+            </div>
+            <div className="node-label">SUB</div>
         </div>
     </div>
 </template>

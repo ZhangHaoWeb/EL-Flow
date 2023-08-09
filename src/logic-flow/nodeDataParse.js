@@ -29,12 +29,12 @@ export default function(data) {
     const nodes = JSON.parse(JSON.stringify(data.nodes))
     const edges = JSON.parse(JSON.stringify(data.edges))
 
-    // validate node value.
-    validateNodes(nodes)
-    // create total tree by nodes and edges
-    const treeHeadNode = parseNodesChildren(nodes[0], nodes, edges)
-    // parse total tree to EL expression
     try {
+        // validate node value.
+        validateNodes(nodes)
+        // create total tree by nodes and edges
+        const treeHeadNode = parseNodesChildren(nodes[0], nodes, edges)
+        // parse total tree to EL expression
         const expression = parseNodesTree(treeHeadNode, true, '') || ''
         return {
             expression,
@@ -136,7 +136,6 @@ function parseNodesTree(node, isCreate, expression) {
     const interSectionNode = findInterSectionNode(node) 
 
     if (isLogicNode) {
-        console.log(`%c${nodeValue}  ${nodeType}`, 'color:red')
         if (children.length == 0) {
             throwErrorHandler(node, ERROR_MAP.NODE_EMPTY_CHILDREN)
         }
@@ -194,7 +193,6 @@ function parseNodesTree(node, isCreate, expression) {
                 expression += `WHILE(${nodeValue}).DO(`
             }
             const arrChildEl = getMultSubExpressionList(children)
-            console.log('FOR & WHILE:', arrChildEl)
             if (arrChildEl.length > 1) {
                 expression += `WHEN(${arrChildEl.join(',')}))`
             } else {
@@ -209,7 +207,6 @@ function parseNodesTree(node, isCreate, expression) {
             }
         }
     } else {
-        console.log(`%c${nodeValue}  ${nodeType}`, 'color:red')
         if (isCreate) {
             expression += `THEN(${nodeValue}`
         } else {
@@ -222,7 +219,6 @@ function parseNodesTree(node, isCreate, expression) {
             expression += `, WHEN(`
             const arrChildEl = getMultSubExpressionList(children)
             expression += arrChildEl.join(',') + ')'
-            console.log(arrChildEl)
 
             if (interSectionNode) {
                 expression += parseNodesTree(interSectionNode, false, '')
@@ -449,5 +445,9 @@ function getNodeNumType(node) {
  * @param {string} message 
  */
 function throwErrorHandler(node, message) {
-    throw new Error(`[NODE:${node.text.value}] ${node.type} ${message}`)
+    if (node.text && node.text.value) {
+        throw new Error(`[NODE:${node.text.value}] ${node.type} ${message}`)
+    } else {
+        throw new Error(`[NODE] ${node.type} ${message}`)
+    }
 }

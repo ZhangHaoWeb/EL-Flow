@@ -12,6 +12,6 @@ export const registerCustomElement = (lf) => {
     lf.register(DiamondNode)
     lf.register(ReaceNode)
     lf.register(ReactRadiusNode)
-    lf.register(RectRadiusSubNode)
     lf.register(HeptagonNode)
+    lf.register(RectRadiusSubNode)
 }

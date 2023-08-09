@@ -2,8 +2,6 @@
 import { onMounted, ref, reactive } from 'vue'
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/dist/style/index.css'
-// import NodePanel from '../components/NodePanel.vue';
-// import RegisteNode from '../logic-flow/registerNode';
 import NodeSideBar from '../components/NodeSideBar.vue'
 import {registerCustomElement} from '../logic-flow/index'
 import nodeDataParse from '../logic-flow/nodeDataParse'
@@ -23,8 +21,6 @@ onMounted(() => {
   })
 
   obj.lf = lf
-  obj.name = 'lee'
-
 
   registerCustomElement(lf)
   lf.render(
@@ -35,7 +31,7 @@ onMounted(() => {
 const getAllData = () => {
   let data = obj.lf.getGraphData()
   const {expression, message} = nodeDataParse(data)
-  console.log(expression)
+  console.log(`%c${expression}`, 'color:pink')
 }
 
 
