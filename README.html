@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>El-Flow Design</title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p>[toc]</p>
+<h1 id="el-flow-design">El-Flow Design</h1>
+<h2 id="基础节点-node-type">基础节点 NODE TYPE</h2>
+<h3 id="执行节点">执行节点</h3>
+<ul>
+<li>STEP: 表示执行步骤</li>
+<li>SUB：表示逻辑操内执行子步骤</li>
+</ul>
+<blockquote>
+<p>执行步骤即 <code>lite flow</code> 的组件概念</p>
+</blockquote>
+<h3 id="逻辑节点">逻辑节点</h3>
+<ul>
+<li>IFEL: <code>if...else...</code> 条件逻辑</li>
+<li>SWITCH: <code>switch</code> 选择逻辑</li>
+<li>FOR: <code>for</code> 循环逻辑</li>
+<li>WHILE: <code>while</code> 循环逻辑</li>
+</ul>
+<blockquote>
+<p>IFEEL、SITCH、FOR、WHILE 为逻辑操作, 其内部执行的结构体, 执行步骤必须用 <code>SUB NODE</code> 表示，而非 <code>STEP NODE</code></p>
+</blockquote>
+<h2 id="基础编排-step-node">基础编排 STEP NODE</h2>
+<h3 id="串行编排">串行编排</h3>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    THEN(a, b, c);
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\step-one.png" alt="串行编排"></p>
+<h3 id="并行编排">并行编排</h3>
+<p>基础并行</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    THEN(a, WHEN(b,c))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\step-two.png" alt="并行编排"></p>
+<p>嵌套并行</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    THEN(a, WHEN(THEN(b, WHEN(d,e)),THEN(c, WHEN(f,g,h))))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\step-five.png" alt="并行编排"></p>
+<p>交点并行</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    THEN(a, WHEN(b,c), d)
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\step-three.png" alt="并行编排"></p>
+<p>更复杂的例子</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    THEN(a, b, c, WHEN(THEN(d, e),f), g, WHEN(THEN(h, j),i))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\step-four.png" alt="并行编排"></p>
+<h2 id="逻辑编排">逻辑编排</h2>
+<h3 id="条件编排-ifel-node">条件编排 IFEL NODE</h3>
+<p>基础条件编排</p>
+<pre><code class="language-xml"><span class="hljs-comment">&lt;!-- 组件 x 结果为true执行组件 b --&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+THEN(a, IF(x, b))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\if-one.png" alt="条件编排"></p>
+<pre><code class="language-xml"><span class="hljs-comment">&lt;!-- 组件 x 结果为true执行组件 b, 否则执行c --&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+THEN(a, IF(x, b).ELSE(c))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\if-two.png" alt="条件编排"></p>
+<blockquote>
+<ul>
+<li>当指定 <code>true</code> 和 <code>false</code> 时，会按照指定生成表达式</li>
+<li>当未指定  <code>true</code> 和 <code>false</code> 时，默认为 谁先连接线到 <code>IFEL</code> 节点谁为true执行的规则（比如c先用线连接到x节点，则<code>true</code>执行c, <code>false</code> 执行b）</li>
+</ul>
+</blockquote>
+<p>嵌套条件编排</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+THEN(a, IF(x, b).ELSE(IF(y, c).ELSE(d)))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\if-three.png" alt="条件编排"></p>
+<p>更复杂的例子</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    THEN(a, IF(x, THEN(b, e, f, WHEN(i,h))).ELSE(IF(y, c).ELSE(THEN(d, IF(z, g)))))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\if-four.png" alt="条件编排"></p>
+<h3 id="选择编排-switch-node">选择编排 SWITCH NODE</h3>
+<p>基础选择编排</p>
+<pre><code class="language-xml"><span class="hljs-comment">&lt;!-- 组件 x 结果为1执行a  为2执行b 为3执行c--&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+SWITCH(x).TO(a,c,b)
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\switch-one.png" alt="选择编排"></p>
+<p>嵌套选择编排</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    THEN(a, SWITCH(x).TO(a,b,THEN(c, SWITCH(y).TO(e,f))))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\switch-two.png" alt="选择编排"></p>
+<p>更复杂的例子</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    THEN(a, SWITCH(x).TO(THEN(a, h, SWITCH(z).TO(THEN(i, WHEN(j,k)))),b,THEN(c, SWITCH(y).TO(THEN(e, m, n),f))))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\switch-three.png" alt="选择编排"></p>
+<h3 id="循环编排-for-node">循环编排 FOR NODE</h3>
+<p>固定次数编排</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    FOR(5).DO(a)
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\for-one.png" alt="循环编排"></p>
+<p>计数组件编排，参考<a href="https://liteflow.yomahub.com/pages/5f971f/">次数循环组件</a></p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    FOR(f).DO(a)
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\for-two.png" alt="循环编排"></p>
+<p>嵌套编排</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    FOR(f).DO(THEN(a, FOR(5).DO(b)))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\for-three.png" alt="循环编排"></p>
+<p>更复杂的例子</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    FOR(f).DO(WHEN(THEN(a, c),THEN(b, WHEN(e,f))))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\for-four.png" alt="循环编排"></p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    FOR(f).DO(WHEN(THEN(a, c, FOR(q).DO(f)),THEN(b, FOR(p).DO(WHEN(d,e)))))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\for-five.png" alt="循环编排"></p>
+<h3 id="循环编排-while-node">循环编排 WHILE NODE</h3>
+<blockquote>
+<p><code>WHILE</code> 和 <code>FOR</code> 的逻辑一致，只是用不同颜色区分的两种循环逻辑</p>
+</blockquote>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">chain</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;chain1&quot;</span>&gt;</span>
+    THEN(a, WHILE(x).DO(WHEN(THEN(b, c),d)))
+<span class="hljs-tag">&lt;/<span class="hljs-name">chain</span>&gt;</span>
+</code></pre>
+<p><img src="file:///d:\work\EL-Flow\public\static\images\while-one.png" alt="循环编排"></p>
+<h2 id="逻辑结构体-sub-node重要">逻辑结构体 SUB NODE(重要)</h2>
+<p>上述的所有的逻辑节点 <code>(IFEL、SWITCH、FOR、WHILE)</code> 后跟的执行步骤节点全部为 <code>SUB NODE</code>, 主要是为了区分逻辑题和主逻辑，表达式内部的解析逻辑是，逻辑节点（IFEL, WITCH, FOR, WHILE）的子节点强制校验为 <code>SUB NODE</code>，否则会抛出错误信息，为什么这么做？
+主要是为了区分主逻辑和子逻辑，如下图
+<img src="file:///d:\work\EL-Flow\public\static\images\sub-one.png" alt="条件编排">
+此时可以很清晰的看出来主逻辑其实是 <code>a-if-b</code> 这样的一个串行关系， <code>IFEL</code> 内的逻辑和主逻辑无关，最终会执行 <code>d</code>
+, 条件逻辑其实从树的角度来看至两个路径，<code>d</code> 却是路径的合并节点</p>
+<blockquote>
+<p>这个规则适用于所有逻辑节点</p>
+</blockquote>
+<pre><code class="language-xml">
+
+</code></pre>
+
+        
+        
+    </body>
+    </html>
