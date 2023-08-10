@@ -5,12 +5,14 @@
   - [基础编排 STEP NODE](#基础编排-step-node)
     - [串行编排](#串行编排)
     - [并行编排](#并行编排)
-  - [逻辑编排](#逻辑编排)
+  - [逻辑编排 LOGIC NODE](#逻辑编排-logic-node)
     - [条件编排 IFEL NODE](#条件编排-ifel-node)
     - [选择编排 SWITCH NODE](#选择编排-switch-node)
     - [循环编排 FOR NODE](#循环编排-for-node)
     - [循环编排 WHILE NODE](#循环编排-while-node)
   - [逻辑结构体 SUB NODE(重要)](#逻辑结构体-sub-node重要)
+    - [理解逻辑结构体](#理解逻辑结构体)
+    - [为什么这么设计](#为什么这么设计)
 
 # El-Flow Design
 图形化流程，更灵活的控制业务逻辑，即流程图 --> 表达式 --> 业务逻辑
@@ -28,6 +30,7 @@
 - FOR: `for` 循环逻辑
 - WHILE: `while` 循环逻辑
 
+以下内容将逻辑节点统一称为 LOGIC NODE
 > IFEEL、SITCH、FOR、WHILE 为逻辑操作, 其内部执行的结构体, 执行步骤必须用 `SUB NODE` 表示，而非 `STEP NODE`
 
 ## 基础编排 STEP NODE
@@ -74,7 +77,7 @@
 ```
 ![并行编排](./public/static/images/step-four.png)
 
-## 逻辑编排
+## 逻辑编排 LOGIC NODE
 ### 条件编排 IFEL NODE
 基础条件编排
 ```xml
@@ -189,15 +192,64 @@ SWITCH(x).TO(a,c,b)
 ![循环编排](./public/static/images/while-one.png)
 
 ## 逻辑结构体 SUB NODE(重要)
-上述的所有的逻辑节点 `(IFEL、SWITCH、FOR、WHILE)` 后跟的执行步骤节点全部为 `SUB NODE`, 主要是为了区分逻辑题和主逻辑，表达式内部的解析逻辑是，逻辑节点（IFEL, WITCH, FOR, WHILE）的子节点强制校验为 `SUB NODE`，否则会抛出错误信息，为什么这么做？
-主要是为了区分主逻辑和子逻辑，如下图
-![条件编排](./public/static/images/sub-one.png)
-此时可以很清晰的看出来主逻辑其实是 `a-if-b` 这样的一个串行关系， `IFEL` 内的逻辑和主逻辑无关，最终会执行 `d`
-, 条件逻辑其实从树的角度来看至两个路径，`d` 却是路径的合并节点 
+### 理解逻辑结构体
+**逻辑结构体**是什么？ 所有的逻辑运算都有其内部逻辑，也就是 `coding` 过程中的大括号的内部逻辑
+```js
+// IFEL
+if (condition) {
+    // 逻辑结构体
+}
 
-> 这个规则适用于所有逻辑节点
+// SWITCH NODE
+switch (key) {
+    // 逻辑结构体
+}
+
+// FOR NODE
+for (let i = 0; i < array.length; i++) {
+    // 逻辑结构体（循环体）
+}
+
+// WHILE NODE
+while (condition) {
+    // 逻辑结构体
+}
+```
+看图说话，红框内为逻辑结构体
+![条件编排](./public/static/images/sub-main.png)
+
+**为什么这么做？**
+- 在复杂的流程图中能更清晰的看出主次逻辑，更容易理解整体的流程
+- 更重要的是标注清楚 **逻辑节点** 的出口在哪里
+
+**你需要遵守的规则**
+- 逻辑结构体内部节点 **必须且只能用`SUB NODE`**
+- 逻辑结构体的出口节点 **有且只能有一个**
+- 逻辑节点的出口节点 **必须且只能用`STEP NODE`**
+
+
+> 规则适用于所有逻辑节点，注意理解这个很重要，否则会抛异常
+### 为什么这么设计
+逻辑结构体需要明确内部和外部的后续执行，也就是 **出口节点**，比如看下面这张图，只有最后一个节点有区别，一个是 `STEP NODE`，另一个是`SUB NODE`, 思考一下表达式有什么不同？
+ ![条件编排](./public/static/images/sub-two.png)
 
 ```xml
+<!--STEP NODE-->
+<chain name="chain1">
+    THEN(a, IF(b, c), b)
+</chain>
 
+<!--SUB NODE-->
+<chain name="chain1">
+    THEN(a, IF(b, THEN(c, d)))
+</chain>
+```
+表达式完全不同的执行逻辑，是否理解了为什么 **逻辑节点** 要 **出口节点**
 
- 
+为什么**出口节点只能有一个**？
+你可能想说下图这样 `节点c` 和 `节点d` 可以看做是一个并行出口， 即 `THEN(a, IF(x, b), WHEN(c, d))`
+ ![条件编排](./public/static/images/sub-five.png)
+ 那稍微拿出一张复杂的图，阁下该如何应对？如果是更复杂的呢？
+ ![条件编排](./public/static/images/sub-four.png)
+
+ 是否更复杂的图让人更难理解，规则是为了让图画的更加清晰更容易让人理解

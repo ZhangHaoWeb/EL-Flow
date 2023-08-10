@@ -16,7 +16,8 @@ const ERROR_MAP = {
    NODE_EMPTY_VALUE: "节点缺少值",
    NODE_EMPTY_CHILDREN: "至少含有一个子节点",
    NODE_CHILD_MUST_SUB: "其子节点必须是SUB类型",
-   NODE_INTERSECTION: "其相交节点不能是SUB节点"
+   NODE_INTERSECTION: "其相交节点不能是SUB节点",
+   NODE_OUT_OVER_FLOW: "逻辑节点的出节点只能有一个"
 }
 
 /**
@@ -34,6 +35,7 @@ export default function(data) {
         validateNodes(nodes)
         // create total tree by nodes and edges
         const treeHeadNode = parseNodesChildren(nodes[0], nodes, edges)
+        console.log(treeHeadNode)
         // parse total tree to EL expression
         const expression = parseNodesTree(treeHeadNode, true, '') || ''
         return {
@@ -136,9 +138,15 @@ function parseNodesTree(node, isCreate, expression) {
     const interSectionNode = findInterSectionNode(node) 
 
     if (isLogicNode) {
+        console.log("interSectionNode", interSectionNode)
         if (children.length == 0) {
             throwErrorHandler(node, ERROR_MAP.NODE_EMPTY_CHILDREN)
         }
+
+        // if don't have interSectionNode, get out node, must be one out node.
+        if (!interSectionNode) {
+            var outNode = getLogicOutNode(node)
+        } 
 
         if (!isCreate) {
             expression += `, `
@@ -146,7 +154,7 @@ function parseNodesTree(node, isCreate, expression) {
 
         // IFEL
         if (nodeType == IFEL) {
-            if (isCreate && interSectionNode) {
+            if (isCreate && (interSectionNode || outNode)) {
                 expression += `THEN(`
             }
             expression += `IF(${nodeValue}, `
@@ -156,27 +164,45 @@ function parseNodesTree(node, isCreate, expression) {
             } else {
                 expression += `${arrChildEl[0]})`
             }
+
+            // has intersection node
             if (interSectionNode) {
                 expression += parseNodesTree(interSectionNode, false, '')
-                if (isCreate) {
-                    expression += ')'
-                }
+            }
+
+            // has out node
+            if (outNode) {
+                expression += parseNodesTree(outNode, false, '')
+            }
+
+            // close create
+            if ((interSectionNode || outNode) && isCreate) {
+                expression += ')'
             }
         }
 
         // SWITCH
         if (nodeType == SWITCH) {
-            if (isCreate && interSectionNode) {
+            if (isCreate && (interSectionNode || outNode)) {
                 expression += `THEN(`
             }
             expression += `SWITCH(${nodeValue}).TO(`
             const arrChildEl = getMultSubExpressionList(children)
             expression += arrChildEl.join(',') + ')'
+
+            // has intersection node
             if (interSectionNode) {
                 expression += parseNodesTree(interSectionNode, false, '')
-                if (isCreate) {
-                    expression += ')'
-                }
+            }
+
+            // has out node
+            if (outNode) {
+                expression += parseNodesTree(outNode, false, '')
+            }
+
+            // close create
+            if ((interSectionNode || outNode) && isCreate) {
+                expression += ')'
             }
         }
 
@@ -226,7 +252,7 @@ function parseNodesTree(node, isCreate, expression) {
         }
 
         // close current expression
-        if (isCreate) {
+        if (isCreate && !node.properties.isSub) {
             expression += ')'
         }
     }
@@ -342,6 +368,41 @@ function splitTreeTraverse(node, intersectionNode) {
     }
 }
 
+function getLogicOutNode(node) {
+    const outSet = new Set()
+    travserseOutNode(node, outSet)
+    if (outSet.size == 0) {
+        return false
+    }
+
+    // out node muse be on. over flow.
+    if (outSet.size > 1) {
+        throwErrorHandler(node, ERROR_MAP.NODE_OUT_OVER_FLOW)
+    }
+
+    return Array.from(outSet)[0]
+}
+
+function travserseOutNode(node, outSet) {
+    const children = node.children
+    if (node.type == STEP) {
+        outSet.add(node)
+    } else {
+        for (let i = 0; i < children.length; i++) {
+            const child = children[i];
+            travserseOutNode(child, outSet)
+
+            // clear sub node's children
+            const outNodeList = Array.from(outSet)
+            for (let j = 0; j < outNodeList.length; j++) {
+                const outNode = outNodeList[j];
+                if (outNode && child.id == outNode.id) {
+                    node.children = []
+                }
+            }
+        }
+    }
+}
 /**
  * Get the out node of loop. 
  * 
@@ -451,3 +512,5 @@ function throwErrorHandler(node, message) {
         throw new Error(`[NODE] ${node.type} ${message}`)
     }
 }
+
+
