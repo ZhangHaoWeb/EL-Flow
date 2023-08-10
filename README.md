@@ -30,7 +30,7 @@
 - FOR: `for` 循环逻辑
 - WHILE: `while` 循环逻辑
 
-以下内容将逻辑节点统一称为 LOGIC NODE
+以下内容将逻辑节点统一称为**逻辑节点（Logic Node）**
 > IFEEL、SITCH、FOR、WHILE 为逻辑操作, 其内部执行的结构体, 执行步骤必须用 `SUB NODE` 表示，而非 `STEP NODE`
 
 ## 基础编排 STEP NODE
@@ -248,7 +248,9 @@ while (condition) {
 
 为什么**出口节点只能有一个**？
 你可能想说下图这样 `节点c` 和 `节点d` 可以看做是一个并行出口， 即 `THEN(a, IF(x, b), WHEN(c, d))`
+
  ![条件编排](./public/static/images/sub-five.png)
+ 
  那稍微拿出一张复杂的图，阁下该如何应对？如果是更复杂的呢？
  ![条件编排](./public/static/images/sub-four.png)
 
