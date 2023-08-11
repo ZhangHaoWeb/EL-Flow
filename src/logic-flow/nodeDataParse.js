@@ -17,7 +17,7 @@ const ERROR_MAP = {
    NODE_EMPTY_CHILDREN: "至少含有一个子节点",
    NODE_CHILD_MUST_SUB: "其子节点必须是SUB类型",
    NODE_INTERSECTION: "其相交节点不能是SUB节点",
-   NODE_OUT_OVER_FLOW: "逻辑节点的出节点只能有一个"
+   NODE_OUT_OVER_FLOW: "逻辑节点的出口节点只能有一个"
 }
 
 /**
@@ -143,20 +143,18 @@ function parseNodesTree(node, isCreate, expression) {
             throwErrorHandler(node, ERROR_MAP.NODE_EMPTY_CHILDREN)
         }
 
-        // if don't have interSectionNode, get out node, must be one out node.
-        if (!interSectionNode) {
-            var outNode = getLogicOutNode(node)
-        } 
+        // find out node
+        const outNode = getLogicOutNode(node)
 
         if (!isCreate) {
             expression += `, `
         }
+        if (isCreate && outNode) {
+            expression += `THEN(`
+        }
 
         // IFEL
         if (nodeType == IFEL) {
-            if (isCreate && (interSectionNode || outNode)) {
-                expression += `THEN(`
-            }
             expression += `IF(${nodeValue}, `
             const arrChildEl = getMultSubExpressionList(children)
             if (arrChildEl.length > 1) {
@@ -164,55 +162,17 @@ function parseNodesTree(node, isCreate, expression) {
             } else {
                 expression += `${arrChildEl[0]})`
             }
-
-            // has intersection node
-            if (interSectionNode) {
-                expression += parseNodesTree(interSectionNode, false, '')
-            }
-
-            // has out node
-            if (outNode) {
-                expression += parseNodesTree(outNode, false, '')
-            }
-
-            // close create
-            if ((interSectionNode || outNode) && isCreate) {
-                expression += ')'
-            }
         }
 
         // SWITCH
         if (nodeType == SWITCH) {
-            if (isCreate && (interSectionNode || outNode)) {
-                expression += `THEN(`
-            }
             expression += `SWITCH(${nodeValue}).TO(`
             const arrChildEl = getMultSubExpressionList(children)
             expression += arrChildEl.join(',') + ')'
-
-            // has intersection node
-            if (interSectionNode) {
-                expression += parseNodesTree(interSectionNode, false, '')
-            }
-
-            // has out node
-            if (outNode) {
-                expression += parseNodesTree(outNode, false, '')
-            }
-
-            // close create
-            if ((interSectionNode || outNode) && isCreate) {
-                expression += ')'
-            }
         }
 
         // FOR & WHILE
         if (nodeType == FOR || (nodeType == WHILE)) {
-            const outNode = findLoopOutNode(node)
-            if (isCreate && outNode) {
-                expression += 'THEN('
-            }
-
             if (nodeType == FOR) {
                 expression += `FOR(${nodeValue}).DO(`
             } else {
@@ -224,13 +184,16 @@ function parseNodesTree(node, isCreate, expression) {
             } else {
                 expression += arrChildEl.join(',') + ')'
             }
-            
-            if (outNode) {
-                expression += parseNodesTree(outNode, false, '')
-                if (isCreate) {
-                    expression += ')'
-                }
-            }
+        }
+
+         // has out node, get sub expression
+         if (outNode) {
+            expression += parseNodesTree(outNode, false, '')
+        }
+
+         // close current create
+         if (outNode && isCreate) {
+            expression += ')'
         }
     } else {
         if (isCreate) {
@@ -252,7 +215,7 @@ function parseNodesTree(node, isCreate, expression) {
         }
 
         // close current expression
-        if (isCreate && !node.properties.isSub) {
+        if (isCreate) {
             expression += ')'
         }
     }
@@ -345,7 +308,7 @@ function traverseTree(node, set, nodeMap) {
 }
 
 /**
- * split tree by intersectionNode
+ * Split tree by intersectionNode
  * 
  * @param {object} node 
  * @param {object} intersectionNode 
@@ -368,6 +331,12 @@ function splitTreeTraverse(node, intersectionNode) {
     }
 }
 
+/**
+ * Get logic node out node, validate out node must be only one.
+ * 
+ * @param {object} node 
+ * @returns 
+ */
 function getLogicOutNode(node) {
     const outSet = new Set()
     travserseOutNode(node, outSet)
@@ -383,6 +352,12 @@ function getLogicOutNode(node) {
     return Array.from(outSet)[0]
 }
 
+/**
+ * DFS get out node set, clear parent node children.
+ * 
+ * @param {object} node 
+ * @param {set} outSet 
+ */
 function travserseOutNode(node, outSet) {
     const children = node.children
     if (node.type == STEP) {
@@ -400,62 +375,6 @@ function travserseOutNode(node, outSet) {
                     node.children = []
                 }
             }
-        }
-    }
-}
-/**
- * Get the out node of loop. 
- * 
- * @param {object} node 
- * @returns 
- */
-function findLoopOutNode(node) {
-    validateLoopSubNode(node)
-
-    const outSet = new Set()
-    travserseLoop(node, outSet)
-    if (outSet.size == 0) {
-        return false
-    }
-    const outNode = Array.from(outSet)[0]
-    return outNode
-}
-
-/**
- * validate loop node.
- * 
- * @param {object} node 
- */
-function validateLoopSubNode(node) {
-    const children = node.children
- 
-    for (let i = 0; i < children.length; i++) {
-        const child = children[i];
-        if (child.type == STEP) {
-            throwErrorHandler(node, ERROR_MAP.NODE_CHILD_MUST_SUB)
-        }
-    }
-}
-
-/**
- * Loop node traverse.
- * 
- * @param {object} node 
- * @param {object} outSet 
- */
-function travserseLoop(node, outSet) {
-    const children = node.children
-
-    if (node.type == STEP) {
-        outSet.add(node)
-    }
-
-    for (let i = 0; i < children.length; i++) {
-        const child = children[i];
-        travserseLoop(child, outSet)
-        const outNode = Array.from(outSet)[0]
-        if (outNode && child.id == outNode.id) {
-            node.children = []
         }
     }
 }
