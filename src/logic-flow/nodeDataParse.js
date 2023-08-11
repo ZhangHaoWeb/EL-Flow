@@ -17,8 +17,11 @@ const ERROR_MAP = {
    NODE_EMPTY_CHILDREN: "至少含有一个子节点",
    NODE_CHILD_MUST_SUB: "其子节点必须是SUB类型",
    NODE_INTERSECTION: "其相交节点不能是SUB节点",
-   NODE_OUT_OVER_FLOW: "逻辑节点的出口节点只能有一个"
+   NODE_OUT_OVER_FLOW: "逻辑节点的出口节点只能有一个",
+   NODE_LOGIC_VAL_ERROR: "逻辑节点值设置错误"
 }
+
+const ALL_NODE_MAP = new Map()
 
 /**
  * Default export function, create expression by logic flow data.
@@ -59,6 +62,7 @@ export default function(data) {
 function validateNodes(nodes) {
     for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
+        ALL_NODE_MAP.set(node.id, node)
         if (!node.text || !node.text.value) {
             throwErrorHandler(node, ERROR_MAP.NODE_EMPTY_VALUE)
         }
@@ -83,14 +87,38 @@ function parseNodesChildren(node, nodes, edges) {
         const edge = edges[i];
         if (id === edge.sourceNodeId) {
             let childId = edge.targetNodeId
-            if (node.type == IFEL) parseNodeIFEL(node, edge)
             
             for (let j = 0; j < nodes.length; j++) {
-                const node = nodes[j];
-                if (node.id === childId) {
-                    children.push(node)
+                const child = nodes[j];
+                const logicVal = edge.text && edge.text.value
+
+                if (child.id === childId) {
+                    child.properties.logic = logicVal
+
+                    if (node.type == IFEL) {
+                        if (logicVal && logicVal !== 'true' && logicVal != 'false') {
+                            throwErrorHandler(node, ERROR_MAP.NODE_LOGIC_VAL_ERROR)
+                        }
+            
+                        if (logicVal == 'true') {
+                            children.unshift(child)
+                        } else {
+                            children.push(child)
+                        }
+                    } else if (node.type == SWITCH) {
+                        let idx = children.findIndex(item => item.properties.logic > logicVal)
+                        console.log(idx)
+                        if (idx == -1) {
+                            children.push(child)
+                        } else {
+                            children.splice(idx, 0, child)
+                        }
+                    } else {
+                        children.push(child)
+                    }
+                    
                     // 递归
-                    parseNodesChildren(node, nodes, edges)
+                    parseNodesChildren(child, nodes, edges)
                 }
             }
         }
@@ -98,23 +126,6 @@ function parseNodesChildren(node, nodes, edges) {
     
     node.children = [...children]
     return node
-}
-
-
-/**
- * IFEL node add ture or false property.
- * 
- * @param {object} node 
- * @param {object} edge 
- */
-function parseNodeIFEL(node, edge) {
-    if (edge.text && edge.text.value == "true") {
-        node.properties.T = edge.targetNodeId
-    }
-    
-    if (edge.text && edge.text.value == "false") {
-        node.properties.F =  edge.targetNodeId
-    }
 }
 
 
@@ -138,12 +149,11 @@ function parseNodesTree(node, isCreate, expression) {
     const interSectionNode = findInterSectionNode(node) 
 
     if (isLogicNode) {
-        console.log("interSectionNode", interSectionNode)
         if (children.length == 0) {
             throwErrorHandler(node, ERROR_MAP.NODE_EMPTY_CHILDREN)
         }
 
-        // find out node
+        // find the only one out node
         const outNode = getLogicOutNode(node)
 
         if (!isCreate) {
@@ -156,7 +166,7 @@ function parseNodesTree(node, isCreate, expression) {
         // IFEL
         if (nodeType == IFEL) {
             expression += `IF(${nodeValue}, `
-            const arrChildEl = getMultSubExpressionList(children)
+            const arrChildEl = getMultSubExpressionList(children, nodeType)
             if (arrChildEl.length > 1) {
                 expression += `${arrChildEl[0]}).ELSE(${arrChildEl[1]})`
             } else {
@@ -167,7 +177,7 @@ function parseNodesTree(node, isCreate, expression) {
         // SWITCH
         if (nodeType == SWITCH) {
             expression += `SWITCH(${nodeValue}).TO(`
-            const arrChildEl = getMultSubExpressionList(children)
+            const arrChildEl = getMultSubExpressionList(children, nodeType)
             expression += arrChildEl.join(',') + ')'
         }
 
@@ -178,7 +188,7 @@ function parseNodesTree(node, isCreate, expression) {
             } else {
                 expression += `WHILE(${nodeValue}).DO(`
             }
-            const arrChildEl = getMultSubExpressionList(children)
+            const arrChildEl = getMultSubExpressionList(children, nodeType)
             if (arrChildEl.length > 1) {
                 expression += `WHEN(${arrChildEl.join(',')}))`
             } else {
@@ -206,7 +216,7 @@ function parseNodesTree(node, isCreate, expression) {
             expression += parseNodesTree(children[0], false, '')
         } else {
             expression += `, WHEN(`
-            const arrChildEl = getMultSubExpressionList(children)
+            const arrChildEl = getMultSubExpressionList(children, nodeType)
             expression += arrChildEl.join(',') + ')'
 
             if (interSectionNode) {
@@ -228,19 +238,35 @@ function parseNodesTree(node, isCreate, expression) {
  * @param {array} children 
  * @returns 
  */
-function getMultSubExpressionList(children) {
-    let arrChildEl = []
+function getMultSubExpressionList(children, type) {
+    const arrChildEl = []
+    const orderArr = []
+
     for (let i = 0; i < children.length; i++) {
         const child = children[i];
+        const value = child.text.value
 
         if (child.children.length > 0) {
-            // create new sub el
-            let subExpression = parseNodesTree(child, true, '')
-            arrChildEl.push(subExpression)
+            // create new sub expression
+            const subExpression = parseNodesTree(child, true, '')
+
+            if (type == IFEL) {
+                if (child.properties) {
+                    arrChildEl.unshift(subExpression)
+                } else {
+                    arrChildEl.push(subExpression)
+                }
+            } else if (type == SWITCH) {
+                arrChildEl.push(subExpression)
+            } else {
+                arrChildEl.push(subExpression)
+            }
         } else {
-            arrChildEl.push(child.text.value)
+            arrChildEl.push(value)
         }
     }
+
+    console.log(arrChildEl)
     return arrChildEl   
 }
 
