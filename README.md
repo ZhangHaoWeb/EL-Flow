@@ -132,6 +132,10 @@ SWITCH(x).TO(a,c,b)
     THEN(a, SWITCH(x).TO(a,b,THEN(c, SWITCH(y).TO(e,f))))
 </chain>
 ```
+
+>- 当指定 `SWITCH NODE` 的值时，按指定值大小优先级，值越小优先级越高（只是试图，非后端逻辑）
+>- 当未指定   `SWITCH NODE` 时，默认为谁先连接线到 `SWITCH NODE` 谁的优先级高
+
 ![选择编排](./public/static/images/switch-two.png)
 
 更复杂的例子
