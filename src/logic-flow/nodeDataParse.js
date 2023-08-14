@@ -266,7 +266,6 @@ function getMultSubExpressionList(children, type) {
         }
     }
 
-    console.log(arrChildEl)
     return arrChildEl   
 }
 
